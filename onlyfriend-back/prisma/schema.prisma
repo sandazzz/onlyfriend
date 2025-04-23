@@ -8,20 +8,67 @@ datasource db {
 }
 
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
-  posts Post[]
-}
-
-model Post {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  username  String?  @unique
+  avatarUrl String?
+  bio       String?
+  googleId  String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  viewCount Int      @default(0)
-  author    User?    @relation(fields: [authorId], references: [id])
-  authorId  Int?
+
+  // Relations
+  sentRequests     FriendRequest[] @relation("Sent")
+  receivedRequests FriendRequest[] @relation("Received")
+  friends          Friend[]        @relation("UserFriends")
+
+  conversations Conversation[] @relation("Participants")
+  messages      Message[]
+
+  Friend Friend[]
+}
+
+model FriendRequest {
+  id        String   @id @default(cuid())
+  fromId    String
+  toId      String
+  status    String   @default("pending") // 'pending', 'accepted', 'declined'
+  createdAt DateTime @default(now())
+
+  from User @relation("Sent", fields: [fromId], references: [id])
+  to   User @relation("Received", fields: [toId], references: [id])
+
+  @@unique([fromId, toId])
+}
+
+model Friend {
+  id        String   @id @default(cuid())
+  userId    String
+  friendId  String
+  createdAt DateTime @default(now())
+
+  user   User @relation("UserFriends", fields: [userId], references: [id])
+  friend User @relation(fields: [friendId], references: [id])
+
+  @@unique([userId, friendId])
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  participants User[] @relation("Participants")
+  messages Message[]
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  content        String
+  createdAt      DateTime @default(now())
+  senderId       String
+  conversationId String
+
+  sender       User         @relation(fields: [senderId], references: [id])
+  conversation Conversation @relation(fields: [conversationId], references: [id])
 }
